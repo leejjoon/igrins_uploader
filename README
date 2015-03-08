@@ -1,0 +1,3 @@
+> virtualenv venv_igrins_upload
+> venv_igrins_upload/bin/pip install pydrive
+> venv_igrins_upload/bin/python upload_test.py 2014 05 23
