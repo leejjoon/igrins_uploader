@@ -7,17 +7,20 @@ def get_archive_listing(drive, utdate_tuple):
     timester_name = get_trimester_name(utdate_tuple)
     utdate = get_utdate_string(utdate_tuple)
 
-    igrins_data = list_folders(drive, None, "igrins_data")
+    chdir = "igrins_data"
+    igrins_data = list_folders(drive, None, chdir)
     if not igrins_data:
-        raise RuntimeError("no directory with of given date is found")
+        raise RuntimeError("no directory with of given date is found: %s" % chdir)
 
-    parent = list_folders(drive, igrins_data[0], timester_name)
+    chdir = timester_name
+    parent = list_folders(drive, igrins_data[0], chdir)
     if not parent:
-        raise RuntimeError("no directory with of given date is found")
+        raise RuntimeError("no directory with of given date is found: %s" % chdir)
 
-    folder = list_folders(drive, parent[0], utdate)
+    chdir = utdate
+    folder = list_folders(drive, parent[0], chdir)
     if not folder:
-        raise RuntimeError("no directory with of given date is found")
+        raise RuntimeError("no directory with of given date is found: %s" % chdir)
 
 
     l = list_files(drive, folder[0])
@@ -35,7 +38,8 @@ def get_archive_listing(drive, utdate_tuple):
 def write_listing(utdate_tuple):
 
     gauth = GoogleAuth()
-    gauth.CommandLineAuth()
+    #gauth.CommandLineAuth()
+    gauth.LocalWebserverAuth()
 
     drive = GoogleDrive(gauth)
 
