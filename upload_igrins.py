@@ -1,10 +1,10 @@
-from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 from gdrive_helper import (get_trimester_name,
                            list_files,
                            ensure_subfolder,
-                           get_utdate_string)
+                           get_utdate_string,
+                           authorize)
 
 def get_upload_file_list(utdate_tuple, indata_format):
 
@@ -31,29 +31,8 @@ def get_upload_file_list(utdate_tuple, indata_format):
 
     return fn_list
 
-def authorize(credfile):
-
-    gauth = GoogleAuth()
-
-    gauth.LoadCredentialsFile(credfile)
-    if gauth.credentials is None:
-        # Authenticate if they're not there
-        #gauth.LocalWebserverAuth()
-        gauth.CommandLineAuth()
-    elif gauth.access_token_expired:
-        # Refresh them if expired
-        gauth.Refresh()
-    else:
-        # Initialize the saved creds
-        gauth.Authorize()
-        # Save the current credentials to a file
-    gauth.SaveCredentialsFile(credfile)
-
-    return gauth
 
 def upload_google_drive(utdate_tuple, indata_format, dry_run):
-    #gauth.LocalWebserverAuth()
-    # gauth.CommandLineAuth()
 
     credfile = "igrins_upload_cred.txt"
 
