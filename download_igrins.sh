@@ -85,5 +85,15 @@ while [ $i -ne $count ]; do
     wget -nv -O $dir/${filename_list[$i]} "${link_list[$i]}"
   fi
 
-  i=$(( $i + 1 ))
+  filename=$dir/${filename_list[$i]}
+  checksum=${md5sum_list[$i]}
+  if [ -e $filename ]; then
+    echo "$checksum $filename" | md5sum -c --status -
+    if [ "$?" = "0" ]; then
+  	 echo "file succesfuuly downloaded"
+         i=$(( $i + 1 ))
+    else
+  	 echo "something has gone wrong. retrying..."
+    fi
+  fi
 done
