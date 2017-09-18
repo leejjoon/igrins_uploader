@@ -35,11 +35,18 @@ if [[ "$unamestr" == 'Linux' ]]; then
    platform='linux'
 elif [[ "$unamestr" == 'FreeBSD' ]]; then
    platform='freebsd'
+elif [[ "$unamestr" == 'Darwin' ]]; then
+   platform='freebsd'
 fi
 
-
-if [[ $platform == 'freebsd' ]]; then
-   alias md5sum='md5 -r'
+if [[ $platform == 'linux' ]]; then
+   get_md5sum() {
+     md5sum $1 | cut -f 1 -d " "
+   }
+elif [[ $platform == 'freebsd' ]]; then
+   get_md5sum() {
+     md5 -q $1
+   }
 fi
 
 
@@ -69,12 +76,13 @@ while read -r -a input; do
  if [[ ! ${input:0:1} = "#" ]]; then
    if [ ${#input[@]} == 3 ]; then
      filename=$dir/${input[0]}
+
      if [ -e $filename ]; then
-       echo "${input[2]} $filename" | md5sum -c --status -
-       if [ "$?" = "0" ]; then
-   	 echo "file already downloaded: $filename"
-   	 continue
-       fi
+         c=`get_md5sum $filename`
+         if [ "${input[2]}" == $c ]; then
+           echo "file already downloaded: $filename"
+   	   continue
+         fi
      fi
 
      filename_list[$count]=${input[0]}
@@ -89,6 +97,9 @@ while read -r -a input; do
 done < $1
 
 i=0
+retry_count=0
+max_retry_count=5
+
 while [ $i -ne $count ]; do
   if [ $use_curl == 1 ]; then
     echo "downloading(w/ curl) $dir/${filename_list[$i]}"
@@ -100,14 +111,23 @@ while [ $i -ne $count ]; do
   fi
 
   filename=$dir/${filename_list[$i]}
-  checksum=${md5sum_list[$i]}
+
   if [ -e $filename ]; then
-    echo "$checksum $filename" | md5sum -c --status -
-    if [ "$?" = "0" ]; then
-  	 echo "file succesfuuly downloaded"
+     checksum=${md5sum_list[$i]}
+     c=`get_md5sum $filename`
+     if [ "${checksum}" == $c ]; then
+         echo "file succesfully downloaded"
          i=$(( $i + 1 ))
-    else
+         retry_count=0
+     else
   	 echo "something has gone wrong. retrying..."
+         retry_count=$(( $retry_count + 1 ))
+
+         if [  $retry_count -gt $max_retry_count ]; then
+             echo "Maximum number retry has reached. Contact the original distributor of this file."
+             exit 1
+         fi
+
     fi
   fi
 done
