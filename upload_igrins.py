@@ -6,28 +6,28 @@ from gdrive_helper import (get_trimester_name,
                            get_utdate_string,
                            authorize)
 
+
 def get_upload_file_list(utdate_tuple, indata_format):
 
     utdate = get_utdate_string(utdate_tuple)
 
     trimester_name = get_trimester_name(utdate_tuple)
 
-    #print utdate, trimester_name
-    #raw_input()
-
     import glob
     import os.path
 
     indata_dir = indata_format.format(utdate=utdate,
                                       trimester=trimester_name)
-    fn_list1 = glob.glob(os.path.join(indata_dir, "*.fits"))
-    fn_list2 = glob.glob(os.path.join(indata_dir, "*.txt"))
-    fn_list = fn_list1 + fn_list2
-    fn_list.sort()
+    fn_list_hk = glob.glob(os.path.join(indata_dir, "SDC[HK]*.fits"))
+    fn_list_hk.sort()
+    fn_list_log = glob.glob(os.path.join(indata_dir, "*.txt"))
+    fn_list_log.sort()
+    fn_list_s = glob.glob(os.path.join(indata_dir, "SDCS*.fits.fz"))
+    fn_list_s.sort()
+    fn_list = fn_list_log + fn_list_hk + fn_list_s
 
     if not fn_list:
         raise RuntimeError("no file to upload for %s" % utdate)
-
 
     return fn_list
 
@@ -48,7 +48,6 @@ def upload_google_drive(utdate_tuple, indata_format, dry_run):
     igrins_data = ensure_subfolder(drive, None, "igrins_data")
     parent = ensure_subfolder(drive, igrins_data, trimester_name)
 
-
     folder = ensure_subfolder(drive, parent, utdate)
 
     l = list_files(drive, folder)
@@ -60,7 +59,6 @@ def upload_google_drive(utdate_tuple, indata_format, dry_run):
         if fn0 in existing_file_names:
             print "skipping {}".format(fn0)
             continue
-
 
         kw = {'title': fn0,
               'parents': [folder],
@@ -75,21 +73,39 @@ def upload_google_drive(utdate_tuple, indata_format, dry_run):
             f.Upload()
             print 'uploaded file %s with mimeType %s' % (f['title'], f['mimeType'])
         else:
-            print 'will uploaded file %s' % (fn0,)
+            print 'will upload file %s' % (fn0,)
 
 
 # Created file hello.png with mimeType image/png
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) not in [4, 5]:
-        print "execname year month day"
-        sys.exit(0)
+    import os
+    import argparse
 
-    if len(sys.argv) == 5 and sys.argv[-1] == "upload":
-        dry_run = False
-    else:
-        dry_run = True
-    utdate_tuple = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
-    indata_format = "/Users/igrins_data/IGRINS_DATA_0/data/{trimester}/{utdate}"
-    upload_google_drive(utdate_tuple, indata_format, dry_run)
+    parser = argparse.ArgumentParser(description='Archive IGRINS data to google drive.')
+    parser.add_argument('--rootdir', "-r",
+                        default=".",
+                        help='rootdir where the fits files are found')
+    parser.add_argument('--childdir-format', "-c",
+                        default="{trimester}/{utdate}",
+                        help='rootdir where the fits files are found')
+
+    parser.add_argument('--dry', dest='dry', action='store_true')
+    parser.add_argument('--no-dry', dest='dry', action='store_false')
+    parser.set_defaults(dry=True)
+
+    parser.add_argument('year', type=int,
+                        help='year')
+    parser.add_argument('month', type=int,
+                        help='month')
+    parser.add_argument('day', type=int,
+                        help='day')
+
+    args = parser.parse_args()
+    print(args.rootdir, args.childdir_format, args.dry, args.year)
+
+    utdate_tuple = (args.year, args.month, args.day)
+    indata_format = os.path.join(args.rootdir, args.childdir_format)
+
+    upload_google_drive(utdate_tuple, indata_format,
+                        dry_run=args.dry)
