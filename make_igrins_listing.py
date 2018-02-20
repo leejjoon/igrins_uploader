@@ -1,4 +1,6 @@
+import re
 from pydrive.drive import GoogleDrive
+
 
 from gdrive_helper import (get_trimester_name, list_files, 
                            list_folders, get_utdate_string,
@@ -37,7 +39,7 @@ def get_archive_listing(drive, utdate_tuple):
     return listing
 
 
-def write_listing(utdate_tuple):
+def write_listing(obsdate_tuple, outname_template, filename_filter):
 
     credfile = "igrins_upload_cred.txt"
 
@@ -45,21 +47,44 @@ def write_listing(utdate_tuple):
 
     drive = GoogleDrive(gauth)
 
-    listing = get_archive_listing(drive, utdate_tuple)
-    outlines = ["{} {} {}\n".format(*r) for r in listing]
-    utdate = get_utdate_string(utdate_tuple)
-    header = ["# IGRINS Listing for %s\n" % utdate]
-    outname = "igrins_{}.list".format(utdate)
+    listing = get_archive_listing(drive, obsdate_tuple)
+
+    if filename_filter:
+        p = re.compile(filename_filter)
+        outlines = ["{} {} {}\n".format(*r) for r in listing
+                    if p.match(r[0])]
+    else:
+        outlines = ["{} {} {}\n".format(*r) for r in listing]
+
+    obsdate = get_utdate_string(obsdate_tuple)
+    header = ["# IGRINS Listing for %s\n" % obsdate]
+    # outname = "igrins_{}.list".format(utdate)
+    outname = outname_template.format(obsdate=obsdate)
     open(outname, "w").writelines(header+outlines)
-    print "%s is written" % outname
+    print("%s is written" % outname)
 
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) not in [4]:
-        print "execname year month day"
-        sys.exit(0)
+    import argparse
 
-    utdate_tuple = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
+    parser = argparse.ArgumentParser(description='Download gdrive list.')
+    parser.add_argument('--outname',
+                        default="igrins_{obsdate}.list",
+                        help='outname')
+    parser.add_argument('--filter',
+                        default="",
+                        help='regext for filtering filename')
+    parser.add_argument('year', type=int,
+                        help='year')
+    parser.add_argument('month', type=int,
+                        help='month')
+    parser.add_argument('day', type=int,
+                        help='day')
 
-    write_listing(utdate_tuple)
+    args = parser.parse_args()
+
+    # utdate_tuple = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
+    obsdate_tuple = args.year, args.month, args.day
+
+    write_listing(obsdate_tuple, args.outname,
+                  filename_filter=args.filter)
