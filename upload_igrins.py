@@ -1,4 +1,6 @@
 from pydrive.drive import GoogleDrive
+import sys
+import time
 
 from gdrive_helper import (get_trimester_name,
                            list_files,
@@ -68,10 +70,23 @@ def upload_google_drive(utdate_tuple, indata_format, dry_run):
             kw["mimeType"] = 'image/fits'
 
         if not dry_run:
-            f = drive.CreateFile(kw)
-            f.SetContentFile(fn)
-            f.Upload()
-            print 'uploaded file %s with mimeType %s' % (f['title'], f['mimeType'])
+            retry_count = 5
+            starttime = time.time()
+            while True:
+                if retry_count < 0:
+                    sys.exit(1)
+                try:
+                    f = drive.CreateFile(kw)
+                    f.SetContentFile(fn)
+                    f.Upload()
+                    print 'uploaded file %s with mimeType %s' % (f['title'], f['mimeType'])
+                    print "Time elapsed: %.1f" % (time.time() - starttime,) 
+                    break
+                except KeyboardInterrupt:
+                    raise
+                except:
+                    print "Error :", retry_count
+                    retry_count -= 1
         else:
             print 'will upload file %s' % (fn0,)
 
