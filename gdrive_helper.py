@@ -63,14 +63,14 @@ def ensure_subfolder(drive, parent, subfoldername):
         return new_folder
 
 
-def get_trimester_year_num(utdate_year, utdate_month):
-    trimester_year = utdate_year
-    if utdate_month == 12:
+def get_trimester_year_num(obsdate_year, obsdate_month):
+    trimester_year = obsdate_year
+    if obsdate_month == 12:
         trimester_year += 1
         trimester_num = 1
-    elif utdate_month <= 3:
+    elif obsdate_month <= 3:
         trimester_num = 1
-    elif utdate_month <= 7:
+    elif obsdate_month <= 7:
         trimester_num = 2
     else:
         trimester_num = 3
@@ -78,13 +78,13 @@ def get_trimester_year_num(utdate_year, utdate_month):
     return trimester_year, trimester_num
 
 
-def get_trimester_name(utdate_tuple):
-    trimester_year, trimester_num = get_trimester_year_num(utdate_tuple[0],
-                                                           utdate_tuple[1])
+def get_trimester_name(obsdate_tuple):
+    trimester_year, trimester_num = get_trimester_year_num(obsdate_tuple[0],
+                                                           obsdate_tuple[1])
     trimester_name = "%04dT%d" % (trimester_year, trimester_num)
 
     return trimester_name
 
-def get_utdate_string(utdate_tuple):
-    utdate = "%04d%02d%02d" % utdate_tuple
-    return utdate
+def get_obsdate_string(obsdate_tuple):
+    obsdate = "%04d%02d%02d" % obsdate_tuple
+    return obsdate
