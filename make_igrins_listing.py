@@ -3,12 +3,12 @@ from pydrive.drive import GoogleDrive
 
 
 from gdrive_helper import (get_trimester_name, list_files, 
-                           list_folders, get_utdate_string,
+                           list_folders, get_obsdate_string,
                            authorize)
 
-def get_archive_listing(drive, utdate_tuple):
-    timester_name = get_trimester_name(utdate_tuple)
-    utdate = get_utdate_string(utdate_tuple)
+def get_archive_listing(drive, obsdate_tuple):
+    timester_name = get_trimester_name(obsdate_tuple)
+    obsdate = get_obsdate_string(obsdate_tuple)
 
     chdir = "igrins_data"
     igrins_data = list_folders(drive, None, chdir)
@@ -20,7 +20,7 @@ def get_archive_listing(drive, utdate_tuple):
     if not parent:
         raise RuntimeError("no directory with of given date is found: %s" % chdir)
 
-    chdir = utdate
+    chdir = obsdate
     folder = list_folders(drive, parent[0], chdir)
     if not folder:
         raise RuntimeError("no directory with of given date is found: %s" % chdir)
@@ -56,9 +56,9 @@ def write_listing(obsdate_tuple, outname_template, filename_filter):
     else:
         outlines = ["{} {} {}\n".format(*r) for r in listing]
 
-    obsdate = get_utdate_string(obsdate_tuple)
+    obsdate = get_obsdate_string(obsdate_tuple)
     header = ["# IGRINS Listing for %s\n" % obsdate]
-    # outname = "igrins_{}.list".format(utdate)
+    # outname = "igrins_{}.list".format(obsdate)
     outname = outname_template.format(obsdate=obsdate)
     open(outname, "w").writelines(header+outlines)
     print("%s is written" % outname)
@@ -83,7 +83,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # utdate_tuple = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
+    # obsdate_tuple = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
     obsdate_tuple = args.year, args.month, args.day
 
     write_listing(obsdate_tuple, args.outname,
