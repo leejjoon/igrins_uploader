@@ -1,3 +1,18 @@
-> virtualenv venv_igrins_upload
-> venv_igrins_upload/bin/pip install pydrive
-> venv_igrins_upload/bin/python upload_test.py 2014 05 23
+When running in a new location, you will be asked of logging in. Open the URL in a incognito window and log in with kgmt.igrins@gmail.com account. The password is for IR lab in KASI.(lyman wavelength)
+
+Requirement
+
+> pip install pydrive
+
+Run
+
+> python upload_test.py 2014 05 23 --rootdir=/DIR/WITH/FILES
+
+- Actual localtion of file will have the TRIMESTER name attached.
+
+
+We now have "download_igrins.py". Because of the download quota in google drive, anonymous download does not work any more.
+
+❯ python download_igrins.py 2020 11 02
+
+You can specify outidr_template also
