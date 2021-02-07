@@ -3,6 +3,13 @@ from collections import deque
 
 import asyncio
 
+import json
+import datetime
+from pathlib import Path
+import glob
+import hashlib
+from enum import Enum
+
 from aiogoogle import Aiogoogle
 from aiogoogle.excs import HTTPError
 from aiogoogle.auth.creds import (
@@ -11,11 +18,6 @@ from aiogoogle.auth.creds import (
     ApiKey,
 )
 
-import json
-import datetime
-from pathlib import Path
-import glob
-import hashlib
 
 credfile = "igrins_upload_cred.txt"
 config = json.load(open(credfile))
@@ -99,6 +101,7 @@ def chunks(lst, n):
 
 
 async def fetch_files_metadata(file_list, dirpath):
+    # FIXME: need an option to re-fetch metadata from gdrive.
     async with Aiogoogle(user_creds=user_creds,
                          client_creds=client_creds) as aiogoogle:
         drive_v3 = await aiogoogle.discover('drive', 'v3')
@@ -199,8 +202,11 @@ async def download_files(file_list, dirpath):
 if __name__ == '__main__':
     main()
 
-from enum import Enum
-
+def select_unique_sorted_names(metadata):
+    mm = {}
+    for m in metadata:
+        mm.setdefault(m["name"], []).append(m)
+    return [mm[k][-1] for k in sorted(mm.keys())]
 
 
 class GDriveHelper(object):
@@ -246,6 +252,7 @@ class GDriveHelper(object):
         # trimester = "2020T3"
         paths = deque(["igrins_data", trimester])
         selected_files = await list_files(paths)
+        selected_files = select_unique_sorted_names(selected_files)
 
         kw = dict(trimester=trimester, timemark=get_timemark())
         fn = os.path.join(self.root_dir, self.metadata_dir,
@@ -267,7 +274,6 @@ class GDriveHelper(object):
         kw = dict(trimester=trimester, timemark="*")
         fn = os.path.join(self.root_dir, self.metadata_dir,
                           "{trimester}_{timemark}.json").format(**kw)
-        import glob
         fnlist = glob.glob(fn)
         if len(fnlist):
             fn = max(fnlist)
@@ -285,6 +291,7 @@ class GDriveHelper(object):
 
             print("{} - {}".format(obsdate, s))
             metadata = await self.check_obsdate(trimester, obsdate, m)
+            metadata = await self.sync_obsdate(trimester, obsdate)
 
     async def check_obsdate(self, trimester, obsdate, m,
                             show_status=True):
@@ -300,6 +307,7 @@ class GDriveHelper(object):
         Path(os.path.dirname(fn)).mkdir(parents=True, exist_ok=True)
 
         filelist = await list_files([], [m["id"]])
+        filelist = select_unique_sorted_names(filelist)
 
         json.dump(filelist, open(fn, "w"))
 
@@ -315,10 +323,10 @@ class GDriveHelper(object):
                           "{trimester}",
                           "{obsdate}_{timemark}.json").format(**kw)
 
-        import glob
         fnlist = glob.glob(fn)
         if len(fnlist):
             fn = max(fnlist)
+            print("loading ", fn)
             return json.load(open(fn))
 
     async def sync_obsdate(self, trimester, obsdate, recheck_gdrive=False):
@@ -328,11 +336,14 @@ class GDriveHelper(object):
         else:
             metadata = self.load_most_recent_obsdate_metadata(trimester,
                                                               obsdate)
+
         dirpath = self.get_obsdate_dir(trimester, obsdate)
         metadata_dict = await fetch_files_metadata(metadata, dirpath)
 
         file_list = [metadata_dict[k] for k in sorted(metadata_dict.keys())]
         await download_files(file_list, dirpath)
+
+        # check the status and mark the obsdate as "VERIFIES"
 
         # for fn, m, s in self.iter_file_status(trimester, obsdate, metadata):
         #     print(fn, s)
@@ -355,10 +366,11 @@ def main():
 
 if True:
     gd = GDriveHelper(root_dir=".")
-    trimester = "2020T3"
+    trimester = "2021T1"
     obsdate = "20201102"
     # k = gd.load_most_recent_trimester_metadata(trimester)
-    asyncio.run(gd.sync_obsdate(trimester, obsdate))
+    asyncio.run(gd.check_trimester(trimester))
+    asyncio.run(gd.sync_trimester(trimester))
 
 
 def main_old():
